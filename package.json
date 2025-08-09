@@ -1,0 +1,88 @@
+{
+  "name": "fold-to-definition",
+  "displayName": "Fold to Definition",
+  "description": "Enhance code readability by folding to show only code definitions.",
+  "version": "0.0.1",
+  "publisher": "NeonEDuck",
+  "author": "NeonEDuck",
+  "license": "MIT",
+  "icon": "images/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NeonEDuck/fold-to-definition.git"
+  },
+  "engines": {
+    "vscode": "^1.101.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "foldToDefinitions.fold",
+        "title": "Fold to definitions"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "foldToDefinitions.fold",
+        "key": "ctrl+m ctrl+o",
+        "mac": "cmd+m cmd+o",
+        "when": "editorTextFocus && foldingEnabled"
+      }
+    ],
+    "configuration": {
+      "title": "Fold To Definitions",
+      "type": "object",
+      "properties": {
+        "foldToDefinitions.foldComment": {
+          "type": "boolean",
+          "default": true,
+          "description": "Fold comment when folding to definitions"
+        },
+        "foldToDefinitions.foldImport": {
+          "type": "boolean",
+          "default": true,
+          "description": "Fold import when folding to definitions"
+        },
+        "foldToDefinitions.foldRegion": {
+          "type": "boolean",
+          "default": true,
+          "description": "Fold #region when folding to definitions"
+        },
+        "foldToDefinitions.foldClassAndInterface": {
+          "type": "string",
+          "enum": ["None", "Inner class", "All"],
+          "default": "None",
+          "description": "Choose how to fold classes and interfaces: 'None' (do not fold), 'Inner class' (fold only inner classes/interfaces), or 'All' (fold all classes/interfaces)"
+        },
+        "foldToDefinitions.foldLocalFunction": {
+          "type": "boolean",
+          "default": false,
+          "description": "Fold local function when folding to definitions"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.101.0",
+    "@types/mocha": "^10.0.10",
+    "@typescript-eslint/eslint-plugin": "^8.39.0",
+    "@typescript-eslint/parser": "^8.39.0",
+    "eslint": "^9.32.0",
+    "typescript": "^5.9.2",
+    "@vscode/test-cli": "^0.0.11",
+    "@vscode/test-electron": "^2.5.2"
+  }
+}
