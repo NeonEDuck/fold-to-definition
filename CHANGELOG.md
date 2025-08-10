@@ -1,9 +1,10 @@
 # Change Log
 
-All notable changes to the "fold-to-definition" extension will be documented in this file.
+### 0.0.2 (2025-08-10)
 
-Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
+- [Added] Automatically folds code to definitions when a file is opened.
+- [Added] Setting to control automatic folding on file is open behavior.
 
-## [Unreleased]
+### 0.0.1 (2025-08-10)
 
-- Initial release
+- Initial release: fold comments, imports, regions, and optionally classes/interfaces and local functions.

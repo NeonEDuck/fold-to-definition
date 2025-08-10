@@ -17,6 +17,7 @@ suite('Extension Test Suite', () => {
             foldClassAndInterface: 'None',
             foldInnerClass: false,
             foldLocalFunction: false,
+            foldOnFileOpen: false,
         };
     }
 

@@ -17,7 +17,9 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onLanguage"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
@@ -63,6 +65,11 @@
           "type": "boolean",
           "default": false,
           "description": "Fold local function when folding to definitions"
+        },
+        "foldToDefinitions.foldOnFileOpen": {
+          "type": "boolean",
+          "default": false,
+          "description": "Fold to definitions when opening a file"
         }
       }
     }

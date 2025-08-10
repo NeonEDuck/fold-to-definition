@@ -16,6 +16,7 @@ export type ConfigType = {
     foldClassAndInterface: FoldClassAndInterfaceType;
     foldInnerClass: boolean;
     foldLocalFunction: boolean;
+    foldOnFileOpen: boolean;
 };
 
 const config: ConfigType = {
@@ -25,6 +26,7 @@ const config: ConfigType = {
     foldClassAndInterface: 'None',
     foldInnerClass: false,
     foldLocalFunction: false,
+    foldOnFileOpen: false,
 };
 
 // #endregion
@@ -32,16 +34,26 @@ const config: ConfigType = {
 // #region VS Code Extension Activation and Deactivation
 
 export function activate(context: vscode.ExtensionContext) {
-    // Register the command and update configuration on activation
+    // Register the configuration change listener to update the config when settings change
     updateConfig();
-    vscode.workspace.onDidChangeConfiguration(event => event.affectsConfiguration('foldToDefinitions') && updateConfig());
+    context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(event => {
+        console.log(`Configuration changed: ${event.affectsConfiguration('foldToDefinitions')}`);
+        event.affectsConfiguration('foldToDefinitions') && updateConfig();
+    }));
 
-    // Register the command
+    // Register the folding command to be executed when a file is opened
+    context.subscriptions.push(vscode.workspace.onDidOpenTextDocument(document => {
+        console.log(`File opened: ${document.uri.toString()}`);
+        config.foldOnFileOpen && foldToDefinitions(document);
+    }));
+
+    // Register the command to fold to definitions
     context.subscriptions.push(vscode.commands.registerCommand('foldToDefinitions.fold', foldToDefinitions));
 
     // #region function updateConfig()
 
     function updateConfig() {
+        console.log("Updating configuration from settings");
         const configuration = vscode.workspace.getConfiguration('foldToDefinitions');
         config.foldRegion = configuration.get<boolean>('foldRegion') ?? config.foldRegion;
         config.foldImport = configuration.get<boolean>('foldImport') ?? config.foldImport;
@@ -49,6 +61,7 @@ export function activate(context: vscode.ExtensionContext) {
         config.foldClassAndInterface = configuration.get<FoldClassAndInterfaceType>('foldClassAndInterface') ?? config.foldClassAndInterface;
         config.foldInnerClass = configuration.get<boolean>('foldInnerClass') ?? config.foldInnerClass;
         config.foldLocalFunction = configuration.get<boolean>('foldLocalFunction') ?? config.foldLocalFunction;
+        config.foldOnFileOpen = configuration.get<boolean>('foldOnFileOpen') ?? config.foldOnFileOpen;
     }
 
     // #endregion
@@ -65,20 +78,24 @@ export function deactivate() { }
  * @async
  * @returns {Promise<void>} Resolves when folding is complete or if no folding is necessary.
  */
-async function foldToDefinitions() {
+async function foldToDefinitions(document?: vscode.TextDocument) {
     // Get current active editor
-    const activeEditor = vscode.window.activeTextEditor;
-    if (activeEditor === undefined) {
-        return;
+    if (!document) {
+        const activeEditor = vscode.window.activeTextEditor;
+        if (activeEditor === undefined) {
+            return;
+        }
+        document = activeEditor.document;
     }
+    console.log(`Folding to definitions in: ${document.uri.toString()}`);
 
     // Find all symbols to fold
-    const symbols = await vscode.commands.executeCommand<vscode.DocumentSymbol[] | undefined>("vscode.executeDocumentSymbolProvider", activeEditor.document.uri)
+    const symbols = await vscode.commands.executeCommand<vscode.DocumentSymbol[] | undefined>("vscode.executeDocumentSymbolProvider", document.uri)
         ?? [];
     const symbolsToFold = findSymbolsToFold(symbols);
 
     // Find all folding range to fold
-    const foldingRanges = await vscode.commands.executeCommand<vscode.FoldingRange[] | undefined>("vscode.executeFoldingRangeProvider", activeEditor.document.uri)
+    const foldingRanges = await vscode.commands.executeCommand<vscode.FoldingRange[] | undefined>("vscode.executeFoldingRangeProvider", document.uri)
         ?? [];
     const foldingRangesToFold = foldingRanges.filter(item =>
         (config.foldComment && item.kind === vscode.FoldingRangeKind.Comment)
@@ -87,7 +104,6 @@ async function foldToDefinitions() {
     );
 
     console.log("Symbols", symbols);
-    console.log("Symbols", JSON.stringify(symbols, null, 2));
     console.log("Folding Range", foldingRanges);
 
     const lineToFold = [...symbolsToFold.map(item => item.range.start.line), ...foldingRangesToFold.map(item => item.start)];
