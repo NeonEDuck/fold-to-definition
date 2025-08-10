@@ -25,6 +25,7 @@ This extension contributes the following settings:
 - `foldToDefinitions.foldRegion`: Fold `#region` blocks when folding to definitions (default: `true`)
 - `foldToDefinitions.foldClassAndInterface`: Choose how to fold classes and interfaces: `None` (do not fold), `Inner class` (fold only inner classes/interfaces), or `All` (fold all classes/interfaces). (default: `None`)
 - `foldToDefinitions.foldLocalFunction`: Fold local functions (default: `false`)
+- `foldToDefinitions.foldOnFileOpen`: Automatically fold to definitions when a file is opened (default: `false`)
 
 ## Usage
 
