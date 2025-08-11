@@ -40,6 +40,10 @@ This extension contributes the following settings:
 
 ## Release Notes
 
+### 0.0.3 (2025-08-11)
+
+- [Fixed] Resolved an issue where symbols were not folded at the correct lines.
+
 ### 0.0.2 (2025-08-10)
 
 - [Added] Automatically folds code to definitions when a file is opened.

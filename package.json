@@ -2,7 +2,7 @@
   "name": "fold-to-definition",
   "displayName": "Fold to Definition",
   "description": "Enhance code readability by folding to show only code definitions.",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "publisher": "NeonEDuck",
   "author": "NeonEDuck",
   "license": "MIT",
@@ -57,7 +57,11 @@
         },
         "foldToDefinitions.foldClassAndInterface": {
           "type": "string",
-          "enum": ["None", "Inner class", "All"],
+          "enum": [
+            "None",
+            "Inner class",
+            "All"
+          ],
           "default": "None",
           "description": "Choose how to fold classes and interfaces: 'None' (do not fold), 'Inner class' (fold only inner classes/interfaces), or 'All' (fold all classes/interfaces)"
         },
@@ -83,13 +87,15 @@
     "test": "vscode-test"
   },
   "devDependencies": {
-    "@types/vscode": "^1.101.0",
     "@types/mocha": "^10.0.10",
+    "@types/node": "^24.2.1",
+    "@types/vscode": "^1.101.0",
     "@typescript-eslint/eslint-plugin": "^8.39.0",
     "@typescript-eslint/parser": "^8.39.0",
-    "eslint": "^9.32.0",
-    "typescript": "^5.9.2",
     "@vscode/test-cli": "^0.0.11",
-    "@vscode/test-electron": "^2.5.2"
+    "@vscode/test-electron": "^2.5.2",
+    "eslint": "^9.32.0",
+    "node": "^22.18.0",
+    "typescript": "^5.9.2"
   }
 }

@@ -106,7 +106,7 @@ async function foldToDefinitions(document?: vscode.TextDocument) {
     console.log("Symbols", symbols);
     console.log("Folding Range", foldingRanges);
 
-    const lineToFold = [...symbolsToFold.map(item => item.range.start.line), ...foldingRangesToFold.map(item => item.start)];
+    const lineToFold = [...symbolsToFold.map(item => item.selectionRange.start.line), ...foldingRangesToFold.map(item => item.start)];
     if (lineToFold.length === 0) {
         return;
     }
