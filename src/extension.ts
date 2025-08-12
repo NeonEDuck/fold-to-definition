@@ -128,11 +128,11 @@ async function foldToDefinitions(document?: vscode.TextDocument) {
  * @returns An array of `vscode.DocumentSymbol` objects that are eligible for folding.
  */
 function findSymbolsToFold(source: vscode.DocumentSymbol[]) {
-    return innerFunction(source, new Set(), source);
-    function innerFunction(source: vscode.DocumentSymbol[], ancestorsSymbolKinds: Set<vscode.SymbolKind>, topLevelSymbols: vscode.DocumentSymbol[]): vscode.DocumentSymbol[] {
+    return _findSymbolsToFold(source, new Set(), source);
+    function _findSymbolsToFold(source: vscode.DocumentSymbol[], ancestorsSymbolKinds: Set<vscode.SymbolKind>, topLevelSymbols: vscode.DocumentSymbol[]): vscode.DocumentSymbol[] {
         return source.flatMap(symbol => [
             ...(isToFoldSymbol(symbol, ancestorsSymbolKinds, topLevelSymbols) ? [symbol] : []),
-            ...innerFunction(symbol.children, new Set([...ancestorsSymbolKinds, symbol.kind]), topLevelSymbols)
+            ..._findSymbolsToFold(symbol.children, new Set([...ancestorsSymbolKinds, symbol.kind]), topLevelSymbols)
         ]);
     }
 }
@@ -166,6 +166,9 @@ export function isToFoldSymbol(symbol: vscode.DocumentSymbol, ancestorsSymbolKin
     const isLocalFunction = FUNCTION_SYMBOL_KINDS.some(kind => ancestorsSymbolKinds.has(kind))
         && FUNCTION_SYMBOL_KINDS.includes(symbol.kind);
 
+    const isNestedProperty = ancestorsSymbolKinds.has(vscode.SymbolKind.Property)
+        && symbol.kind === vscode.SymbolKind.Property;
+
     const isClassSymbol = CLASS_AND_INTERFACE_SYMBOL_KINDS.includes(symbol.kind);
 
     // Only do inner class checking if foldClassAndInterface is set to 'Inner class'
@@ -183,7 +186,8 @@ export function isToFoldSymbol(symbol: vscode.DocumentSymbol, ancestorsSymbolKin
                 ))
         );
 
-    return !(isLocalFunction && !_config.foldLocalFunction)
+    return !isNestedProperty
+        && !(isLocalFunction && !_config.foldLocalFunction)
         && !(isClassSymbol && !isInnerClassSymbol && _config.foldClassAndInterface !== 'All')
         && !(isInnerClassSymbol && _config.foldClassAndInterface !== 'All' && _config.foldClassAndInterface !== 'Inner class');
 }

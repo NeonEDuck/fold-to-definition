@@ -1,5 +1,9 @@
 # Change Log
 
+### 0.0.4 (2025-08-12)
+
+- [Changed] Turn off folding for nested property.
+
 ### 0.0.3 (2025-08-11)
 
 - [Fixed] Resolved an issue where symbols were not folded at the correct lines.
