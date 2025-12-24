@@ -19,7 +19,7 @@ export type ConfigType = {
     foldOnFileOpen: boolean;
 };
 
-const config: ConfigType = {
+const extensionConfig: ConfigType = {
     foldRegion: true,
     foldImport: true,
     foldComment: true,
@@ -44,7 +44,7 @@ export function activate(context: vscode.ExtensionContext) {
     // Register the folding command to be executed when a file is opened
     context.subscriptions.push(vscode.workspace.onDidOpenTextDocument(document => {
         console.log(`File opened: ${document.uri.toString()}`);
-        config.foldOnFileOpen && foldToDefinitions(document);
+        extensionConfig.foldOnFileOpen && foldToDefinitions(document);
     }));
 
     // Register the command to fold to definitions
@@ -53,15 +53,15 @@ export function activate(context: vscode.ExtensionContext) {
     // #region function updateConfig()
 
     function updateConfig() {
-        console.log("Updating configuration from settings");
+        console.log('Updating configuration from settings');
         const configuration = vscode.workspace.getConfiguration('foldToDefinitions');
-        config.foldRegion = configuration.get<boolean>('foldRegion') ?? config.foldRegion;
-        config.foldImport = configuration.get<boolean>('foldImport') ?? config.foldImport;
-        config.foldComment = configuration.get<boolean>('foldComment') ?? config.foldComment;
-        config.foldClassAndInterface = configuration.get<FoldClassAndInterfaceType>('foldClassAndInterface') ?? config.foldClassAndInterface;
-        config.foldInnerClass = configuration.get<boolean>('foldInnerClass') ?? config.foldInnerClass;
-        config.foldLocalFunction = configuration.get<boolean>('foldLocalFunction') ?? config.foldLocalFunction;
-        config.foldOnFileOpen = configuration.get<boolean>('foldOnFileOpen') ?? config.foldOnFileOpen;
+        extensionConfig.foldRegion = configuration.get<boolean>('foldRegion') ?? extensionConfig.foldRegion;
+        extensionConfig.foldImport = configuration.get<boolean>('foldImport') ?? extensionConfig.foldImport;
+        extensionConfig.foldComment = configuration.get<boolean>('foldComment') ?? extensionConfig.foldComment;
+        extensionConfig.foldClassAndInterface = configuration.get<FoldClassAndInterfaceType>('foldClassAndInterface') ?? extensionConfig.foldClassAndInterface;
+        extensionConfig.foldInnerClass = configuration.get<boolean>('foldInnerClass') ?? extensionConfig.foldInnerClass;
+        extensionConfig.foldLocalFunction = configuration.get<boolean>('foldLocalFunction') ?? extensionConfig.foldLocalFunction;
+        extensionConfig.foldOnFileOpen = configuration.get<boolean>('foldOnFileOpen') ?? extensionConfig.foldOnFileOpen;
     }
 
     // #endregion
@@ -90,21 +90,17 @@ async function foldToDefinitions(document?: vscode.TextDocument) {
     console.log(`Folding to definitions in: ${document.uri.toString()}`);
 
     // Find all symbols to fold
-    const symbols = await vscode.commands.executeCommand<vscode.DocumentSymbol[] | undefined>("vscode.executeDocumentSymbolProvider", document.uri)
+    const symbols = await vscode.commands.executeCommand<vscode.DocumentSymbol[] | undefined>('vscode.executeDocumentSymbolProvider', document.uri)
         ?? [];
     const symbolsToFold = findSymbolsToFold(symbols);
 
     // Find all folding range to fold
-    const foldingRanges = await vscode.commands.executeCommand<vscode.FoldingRange[] | undefined>("vscode.executeFoldingRangeProvider", document.uri)
+    const foldingRanges = await vscode.commands.executeCommand<vscode.FoldingRange[] | undefined>('vscode.executeFoldingRangeProvider', document.uri)
         ?? [];
-    const foldingRangesToFold = foldingRanges.filter(item =>
-        (config.foldComment && item.kind === vscode.FoldingRangeKind.Comment)
-        || (config.foldImport && item.kind === vscode.FoldingRangeKind.Imports)
-        || (config.foldRegion && item.kind === vscode.FoldingRangeKind.Region)
-    );
+    const foldingRangesToFold = sanitizeFoldingRanges(foldingRanges, document);
 
-    console.log("Symbols", symbols);
-    console.log("Folding Range", foldingRanges);
+    console.log('Symbols', symbols);
+    console.log('Folding Range', foldingRanges);
 
     const lineToFold = [...symbolsToFold.map(item => item.selectionRange.start.line), ...foldingRangesToFold.map(item => item.start)];
     if (lineToFold.length === 0) {
@@ -112,19 +108,18 @@ async function foldToDefinitions(document?: vscode.TextDocument) {
     }
 
     for (const symbol of symbolsToFold) {
-        console.log("Folding", vscode.SymbolKind[symbol.kind], symbol.name, "in line", symbol.selectionRange.start.line + 1);
+        console.log('Folding', vscode.SymbolKind[symbol.kind], symbol.name, 'in line', symbol.selectionRange.start.line + 1);
     }
 
     // Unfolding all then fold all valid line
-    await vscode.commands.executeCommand("editor.unfoldAll");
-    await vscode.commands.executeCommand("editor.fold", { selectionLines: lineToFold });
+    await vscode.commands.executeCommand('editor.unfoldAll');
+    await vscode.commands.executeCommand('editor.fold', { selectionLines: lineToFold });
 }
 
 /**
  * Recursively finds and returns all symbols from the given source array that should be folded,
  * based on their kind and the kinds of their ancestor symbols.
  * @param source - An array of `vscode.DocumentSymbol` objects to search for foldable symbols.
- * @param _ancestorsSymbolKinds - A set of symbol kinds representing the ancestors of the symbol.
  * @returns An array of `vscode.DocumentSymbol` objects that are eligible for folding.
  */
 function findSymbolsToFold(source: vscode.DocumentSymbol[]) {
@@ -138,15 +133,40 @@ function findSymbolsToFold(source: vscode.DocumentSymbol[]) {
 }
 
 /**
+ * Sanitizes the provided folding ranges by ensuring that regions are correctly identified
+ * @param foldingRanges - An array of `vscode.FoldingRange` objects to sanitize.
+ * @param document - The `vscode.TextDocument` containing the folding ranges.
+ * @returns An array of sanitized `vscode.FoldingRange` objects.
+ */
+function sanitizeFoldingRanges(foldingRanges: vscode.FoldingRange[], document: vscode.TextDocument): vscode.FoldingRange[] {
+    foldingRanges.map(item => {
+        // If folding range kind is undefined, check if it's a region, in case the provider doesn't properly set it
+        if (item.kind === undefined) {
+            const startingLineText = document.lineAt(item.start).text;
+            const endingLineText = document.lineAt(item.end).text;
+            if (/.*#region.*/i.test(startingLineText) && /.*#endregion.*/i.test(endingLineText)) {
+                item.kind = vscode.FoldingRangeKind.Region;
+            }
+        }
+    });
+
+    return foldingRanges.filter(item =>
+        (extensionConfig.foldComment && item.kind === vscode.FoldingRangeKind.Comment)
+        || (extensionConfig.foldImport && item.kind === vscode.FoldingRangeKind.Imports)
+        || (extensionConfig.foldRegion && item.kind === vscode.FoldingRangeKind.Region)
+    );
+}
+
+/**
  * Determines whether a given symbol should be folded in the editor based on its kind,
  * ancestry, and user configuration.
  * @param symbol - The document symbol to evaluate for folding.
  * @param ancestorsSymbolKinds - A set of symbol kinds representing the ancestors of the symbol.
- * @param _config - Optional configuration object that overrides the default folding settings. (Mainly used for testing)
+ * @param config - Optional configuration object that overrides the default folding settings. (Mainly used for testing)
  * @returns `true` if the symbol should be folded, `false` otherwise.
  */
-export function isToFoldSymbol(symbol: vscode.DocumentSymbol, ancestorsSymbolKinds: Set<vscode.SymbolKind>, topLevelSymbols: vscode.DocumentSymbol[], _config?: ConfigType) {
-    _config ??= config;
+export function isToFoldSymbol(symbol: vscode.DocumentSymbol, ancestorsSymbolKinds: Set<vscode.SymbolKind>, topLevelSymbols: vscode.DocumentSymbol[], config?: ConfigType) {
+    config ??= extensionConfig;
 
     // No need to fold single line
     if (symbol.range.isSingleLine) {
@@ -172,24 +192,25 @@ export function isToFoldSymbol(symbol: vscode.DocumentSymbol, ancestorsSymbolKin
     const isClassSymbol = CLASS_AND_INTERFACE_SYMBOL_KINDS.includes(symbol.kind);
 
     // Only do inner class checking if foldClassAndInterface is set to 'Inner class'
-    const isInnerClassSymbol = _config.foldClassAndInterface === 'Inner class'
+    const isInnerClassSymbol = config.foldClassAndInterface === 'Inner class'
         && isClassSymbol
         && (
             CLASS_AND_INTERFACE_SYMBOL_KINDS.some(kind => ancestorsSymbolKinds.has(kind))
             // Omnisharp will flatten the class and interface hierarchy, so we need to check if there is a top-level symbol that is actually a inner class or interface
             || (
                 topLevelSymbols
-                .filter(topLevelSymbol => CLASS_AND_INTERFACE_SYMBOL_KINDS.includes(topLevelSymbol.kind))
-                .some(topLevelSymbol =>
-                    topLevelSymbol.range.start.isBefore(symbol.range.start)
-                    && topLevelSymbol.range.end.isAfter(symbol.range.end)
-                ))
+                    .filter(topLevelSymbol => CLASS_AND_INTERFACE_SYMBOL_KINDS.includes(topLevelSymbol.kind))
+                    .some(topLevelSymbol =>
+                        topLevelSymbol.range.start.isBefore(symbol.range.start)
+                        && topLevelSymbol.range.end.isAfter(symbol.range.end)
+                    )
+            )
         );
 
     return !isNestedProperty
-        && !(isLocalFunction && !_config.foldLocalFunction)
-        && !(isClassSymbol && !isInnerClassSymbol && _config.foldClassAndInterface !== 'All')
-        && !(isInnerClassSymbol && _config.foldClassAndInterface !== 'All' && _config.foldClassAndInterface !== 'Inner class');
+        && !(isLocalFunction && !config.foldLocalFunction)
+        && !(isClassSymbol && !isInnerClassSymbol && config.foldClassAndInterface !== 'All')
+        && !(isInnerClassSymbol && config.foldClassAndInterface !== 'All' && config.foldClassAndInterface !== 'Inner class');
 }
 
 // #endregion

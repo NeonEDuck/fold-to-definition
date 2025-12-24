@@ -2,7 +2,7 @@
   "name": "fold-to-definition",
   "displayName": "Fold to Definition",
   "description": "Enhance code readability by folding to show only code definitions.",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "publisher": "NeonEDuck",
   "author": "NeonEDuck",
   "license": "MIT",

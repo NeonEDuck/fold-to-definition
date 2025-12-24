@@ -1,5 +1,9 @@
 # Change Log
 
+### 0.0.5 (2025-12-24)
+
+- [Changed] Add an additional check for folding ranges that are not marked as regions, which can cause `foldRegion` to fail.
+
 ### 0.0.4 (2025-08-12)
 
 - [Changed] Turn off folding for nested property.
